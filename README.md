@@ -4,6 +4,8 @@ To be updated soon
 
 If you find this useful, please cite the following paper:
 
+```
+
 @Article{s21072302,
 AUTHOR = {Bouktif, Salah and Cheniki, Abderraouf and Ouni, Ali},
 TITLE = {Traffic Signal Control Using Hybrid Action Space Deep Reinforcement Learning},
@@ -16,6 +18,7 @@ URL = {https://www.mdpi.com/1424-8220/21/7/2302},
 ISSN = {1424-8220},
 DOI = {10.3390/s21072302}
 }
+```
 
 
 
