@@ -3,7 +3,7 @@ Hybrid Deep Reinforcement Learning for Intelligent Traffic Signal Control
 To be updated soon
 
 If you find this useful, please cite the following paper:
-
+https://www.mdpi.com/1424-8220/21/7/2302
 ```
 
 @Article{s21072302,
