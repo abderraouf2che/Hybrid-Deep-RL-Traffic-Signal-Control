@@ -1,0 +1,21 @@
+<configuration>
+
+<input>
+    <net-file value="intersection_3.net.xml" />
+    <route-files value="intersection_3.rou.xml"/>
+	
+</input>
+
+<time>
+        <begin value="0"/>
+        <end value="3600"/>
+</time>
+
+<output>
+	<tripinfo-output value="test.xml"/>
+        <tripinfo-output.write-unfinished value="True"/>
+</output>
+
+
+
+</configuration>
