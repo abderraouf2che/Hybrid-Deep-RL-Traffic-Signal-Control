@@ -1,6 +1,8 @@
 # Hybrid-Deep-RL-Traffic-Signal-Control
 Hybrid Deep Reinforcement Learning for Intelligent Traffic Signal Control
-To be updated soon
+
+The MDPI.ipyn is the main notebook.
+
 
 If you find this useful, please cite the following paper:
 https://www.mdpi.com/1424-8220/21/7/2302
