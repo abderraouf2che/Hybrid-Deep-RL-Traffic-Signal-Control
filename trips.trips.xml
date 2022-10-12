@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- generated on 2020-07-26 11:46:00.710851 by randomTrips.py v1_6_0+0711-584f973708
+  options: -n intersection_3.net.xml -r intersection_3.net.xml
+-->
+<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">
+</routes>

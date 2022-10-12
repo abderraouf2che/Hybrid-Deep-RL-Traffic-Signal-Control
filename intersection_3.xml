@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on Tue Aug  4 15:50:34 2020 by Eclipse SUMO GUI Version 1.6.0
+<configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
+
+    <input>
+        <net-file value="/Users/abderraoufcheniki/Documents/Dev/traffic/sumo_test/tutorials/new/intersection_3.net.xml"/>
+        <route-files value="/Users/abderraoufcheniki/Documents/Dev/traffic/sumo_test/tutorials/new/intersection_3.rou.xml"/>
+        <additional-files value="/Users/abderraoufcheniki/Documents/Dev/traffic/sumo_test/tutorials/new/intersection_3.add.xml"/>
+    </input>
+
+    <output>
+        <tripinfo-output value="/Users/abderraoufcheniki/Documents/Dev/traffic/sumo_test/tutorials/new/intersection_3.xml"/>
+        <tripinfo-output.write-unfinished value="true"/>
+    </output>
+
+</configuration>
+-->
+
+<tripinfos xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/tripinfo_file.xsd">
+</tripinfos>

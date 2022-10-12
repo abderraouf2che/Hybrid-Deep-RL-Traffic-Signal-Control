@@ -1,0 +1,26 @@
+
+<additional>
+
+	<!-- <e1Detector id="det_0" lane="e1_in_2" pos="400" freq="10" file="det_0.out"/> -->
+	<!-- <e1Detector id="det_1" lane="e1_in_1" pos="400" freq="10" file="det_1.out"/> -->
+	<inductionLoop id="e1_out_0_d" lane="e1_out_0" pos="10" freq="10" file="None" />
+	<inductionLoop id="e1_out_1_d" lane="e1_out_1" pos="10" freq="10" file="None" />
+	<inductionLoop id="e1_out_2_d" lane="e1_out_2" pos="10" freq="10" file="None" />
+	<inductionLoop id="e1_out_3_d" lane="e1_out_3" pos="10" freq="10" file="None" />
+
+	<inductionLoop id="e2_out_0_d" lane="e2_out_0" pos="10" freq="10" file="None" />
+	<inductionLoop id="e2_out_1_d" lane="e2_out_1" pos="10" freq="10" file="None" />
+	<inductionLoop id="e2_out_2_d" lane="e2_out_2" pos="10" freq="10" file="None" />
+	<inductionLoop id="e2_out_3_d" lane="e2_out_3" pos="10" freq="10" file="None" />
+
+	<inductionLoop id="e3_out_0_d" lane="e3_out_0" pos="10" freq="10" file="None" />
+	<inductionLoop id="e3_out_1_d" lane="e3_out_1" pos="10" freq="10" file="None" />
+	<inductionLoop id="e3_out_2_d" lane="e3_out_2" pos="10" freq="10" file="None" />
+	<inductionLoop id="e3_out_3_d" lane="e3_out_3" pos="10" freq="10" file="None" />
+
+	<inductionLoop id="e4_out_0_d" lane="e4_out_0" pos="10" freq="10" file="None" />
+	<inductionLoop id="e4_out_1_d" lane="e4_out_1" pos="10" freq="10" file="None" />
+	<inductionLoop id="e4_out_2_d" lane="e4_out_2" pos="10" freq="10" file="None" />
+	<inductionLoop id="e4_out_3_d" lane="e4_out_3" pos="10" freq="10" file="None" />
+
+</additional>
