@@ -1,0 +1,401 @@
+#Mine
+import os
+import click
+import time
+import numpy as np
+import gym
+import gym_goal
+from gym_goal.envs.config import GOAL_WIDTH, PITCH_LENGTH, PITCH_WIDTH
+from gym.wrappers import Monitor
+from common import ClickPythonLiteralOption
+from common.wrappers import ScaledParameterisedActionWrapper
+from common.goal_domain import GoalFlattenedActionWrapper, GoalObservationWrapper
+from common.wrappers import ScaledStateWrapper
+from agents.pdqn import PDQNAgent
+from agents.pdqn_split import SplitPDQNAgent
+from agents.pdqn_multipass import MultiPassPDQNAgent
+
+
+
+def pad_action(act, act_param):
+    params = [np.zeros((2,)), np.zeros((1,)), np.zeros((1,))]
+    params[act] = act_param
+    return (act, params)
+
+
+def evaluate(env, agent, episodes=1000):
+    returns = []
+    timesteps = []
+    for _ in range(episodes):
+        state, _ = env.reset()
+        terminal = False
+        t = 0
+        total_reward = 0.
+        while not terminal:
+            t += 1
+            state = np.array(state, dtype=np.float32, copy=False)
+            act, act_param, all_action_parameters = agent.act(state)
+            action = pad_action(act, act_param)
+            (state, _), reward, terminal, _ = env.step(action)
+            total_reward += reward
+        timesteps.append(t)
+        returns.append(total_reward)
+    return np.array(returns)
+
+
+
+seed=0
+episodes=351
+evaluation_episodes=5000
+batch_size=64
+gamma=0.95
+inverting_gradients=True #True ####
+           
+initial_memory_threshold=128
+use_ornstein_noise=False ####
+             
+replay_memory_size=20000 ###
+epsilon_steps=270
+epsilon_final=0.01
+tau_actor=0.1
+tau_actor_param=0.001
+learning_rate_actor=0.001 #0.001
+learning_rate_actor_param=0.00001 # 0.001
+scale_actions=False#True
+initialise_params=False#True#
+reward_scale=1./20
+clip_grad=1.# 1.
+multipass=True#False#
+
+indexed=False#True ####
+weighted=False#True ####
+average=False# True ####
+random_weighted=False#True
+
+split=False#True#
+zero_index_gradients=False #False####
+layers=(256,)#, 128)
+action_input_layer=0
+save_freq=0
+save_dir="results/goal"
+render_freq=100
+save_frames=False
+visualise=False
+title="PDQN"
+
+
+
+if save_freq > 0 and save_dir:
+    save_dir = os.path.join(save_dir, title + "{}".format(str(seed)))
+    os.makedirs(save_dir, exist_ok=True)
+assert not (save_frames and visualise)
+if visualise:
+    assert render_freq > 0
+if save_frames:
+    assert render_freq > 0
+    vidir = os.path.join(save_dir, "frames")
+    os.makedirs(vidir, exist_ok=True)
+
+
+#Action space Wrapper
+discrete_space = gym.spaces.Discrete(4)
+continuous_space = gym.spaces.Box(np.array([5]), np.array([45]))
+action_space = gym.spaces.Tuple((discrete_space, continuous_space))
+old_as = action_space 
+num_actions = old_as.spaces[0].n
+
+action_space = gym.spaces.Tuple((
+            old_as.spaces[0],  # actions
+            *(gym.spaces.Box(old_as.spaces[1].low, old_as.spaces[1].high, dtype=np.float32)
+              for i in range(0, num_actions))
+        ))
+
+#Obs
+state_size=17
+observation_space = gym.spaces.Box(0 , 50, shape=(state_size,))
+
+# dir = os.path.join(save_dir, title)
+
+
+
+np.random.seed(seed)
+
+assert not (split and multipass)
+
+agent_class = PDQNAgent
+if split:
+    agent_class = SplitPDQNAgent
+elif multipass:
+    agent_class = MultiPassPDQNAgent
+    
+# layers_list = [(256,), (256,128,64), (64,64,64)]
+
+
+agent = agent_class(
+                   observation_space=observation_space, #env.observation_space.spaces[0], 
+                   action_space=action_space,#env.action_space,
+                   batch_size=batch_size,
+                   learning_rate_actor= learning_rate_actor,
+                   learning_rate_actor_param=learning_rate_actor_param,
+                   epsilon_steps=epsilon_steps,
+                   epsilon_final=epsilon_final,
+                   gamma=gamma,
+                   clip_grad=clip_grad,
+                   indexed=indexed,
+                   average=average,
+                   random_weighted=random_weighted,
+                   tau_actor=tau_actor,
+                   weighted=weighted,
+                   tau_actor_param=tau_actor_param,
+                   initial_memory_threshold=initial_memory_threshold,
+                   use_ornstein_noise=use_ornstein_noise,
+                   replay_memory_size=replay_memory_size,
+                   inverting_gradients=inverting_gradients,
+                   actor_kwargs={'hidden_layers': layers,\
+                                 'output_layer_init_std': 1e-5,
+                                 'action_input_layer': action_input_layer,},
+                   actor_param_kwargs={'hidden_layers': layers, \
+                                       'output_layer_init_std': 1e-5,
+                                       'squashing_function': False},
+                   zero_index_gradients=zero_index_gradients,
+                   seed=seed)
+
+if initialise_params:
+    agent.set_action_parameter_passthrough_weights(initial_weights, initial_bias)
+print(agent)
+
+
+
+
+#######
+
+
+reward_list = []
+queue_list  = []
+travel_time_list = []
+waiting_time_list = []
+
+AGGREGATE_REWARD_EVERY = 50
+start_learning = False
+
+max_steps = 4000
+steps = 4000
+final_time =4000
+save_label = time.ctime()
+output_dir = 'tls_model/'
+model_path = os.path.join(output_dir, save_label)
+if not os.path.exists(model_path):
+    os.makedirs(model_path)
+
+
+# Settings
+green_duration = 15
+state_type = 'queue' 
+flow_type = 'weibull'
+n_cars = 4001
+
+
+penalty_type = False
+large_action = False
+action_size= 4
+
+penalty_type = 'ep_reward'
+penalty_type = False
+penalty_thresh= -7000
+if penalty_type =='teleport':
+    del sumoCmd[3:5]
+
+print(sumoCmd)
+print('-------------- Setup Training with the Next Parameters --------------')
+print('Flow Type:                    |', flow_type)
+print('Number of cars generated:     |', str(n_cars))
+print('Green Phase duration:         |', green_duration)
+print('State and Reward Definition:  |', state_type)
+print('Penalty Type:                 |', penalty_type)
+print('Multi Pass:                   |', multipass)
+print('Layers:                       |', layers)
+print('--------------                                        ---------------')
+
+
+######
+
+total_reward = 0.
+returns = []
+
+start_time = time.time()
+video_index = 0
+
+
+
+for i in range(episodes):
+    generate_route_file(dist = flow_type, n_cars_1=n_cars, n_cars_2=False, n_cars_3=False, episode=i) 
+    traci.start(sumoCmd)
+    intersection = 'intersection'
+    traci.simulationStep()
+    step = 1
+
+    if save_freq > 0 and save_dir and i % save_freq == 0:
+        agent.save_models(os.path.join(save_dir, str(i)))
+
+
+    old_action = random.randint(0, action_size-1)
+    old_phase = old_action
+    set_green_phase(old_phase, green_duration=green_duration)
+    
+    state = get_state(intersection, max_pos=150, state_type=state_type, ignore_far_cars=False)
+    state= np.reshape(state, (state_size,))
+#     state[-1] = green_duration
+    state = np.array(state, dtype=np.float32, copy=False)
+    state = state/observation_space.high[0]
+    act, act_param, all_action_parameters = agent.act(state)
+
+
+    episode_reward = 0.
+    agent.start_episode()
+    terminal = False
+    ep_queue_list = []
+    old_reward = 0
+    for j in range(max_steps):
+
+        
+        phase = act
+        green_duration = act_param
+        green_duration= int(green_duration[0])
+        if phase != old_phase:
+            set_yellow_phase(old_phase)
+
+        
+        
+        set_green_phase(phase, green_duration=green_duration)
+        step = step + yellow_duration + green_duration
+
+#         print(phase, green_duration)
+
+        next_state = get_state(intersection, state_type=state_type, max_pos=150, ignore_far_cars=False)
+        next_state= np.reshape(next_state, (state_size,))
+#         next_state[-1] = green_duration
+        new_reward = np.sum(next_state[0:-1])
+
+        next_state = np.array(next_state, dtype=np.float32, copy=False)
+        next_state = next_state/observation_space.high[0]
+
+        
+        
+        queue = get_queue(intersection)
+        reward = - new_reward
+        ep_queue_list.append(queue)
+
+        next_step = step + yellow_duration + green_duration
+        if next_step >= max_steps:
+                    terminal = True
+
+
+
+
+        next_act, next_act_param, next_all_action_parameters = agent.act(next_state)
+
+#         next_action = pad_action(next_act, next_act_param)
+        r = reward * reward_scale
+
+        episode_reward += reward
+
+
+#         if episode_reward< penalty_thresh:
+#             reward = penalty_thresh/10
+#             terminal = True
+
+#             agent.step(state, (act, all_action_parameters), r, next_state,
+#                    (next_act, next_all_action_parameters), terminal, step)
+
+#             print(step)
+#             break
+
+        agent.step(state, (act, all_action_parameters), r, next_state,
+                   (next_act, next_all_action_parameters), terminal, step)
+
+        act, act_param, all_action_parameters = next_act, next_act_param, next_all_action_parameters
+#         action = next_action
+        state = next_state
+        old_phase = phase
+#         old_reward = reward
+
+
+
+        if terminal:
+            break
+    agent.end_episode()
+    ep_queue = sum(ep_queue_list)/len(ep_queue_list)
+    queue_list.append(ep_queue)
+    reward_list.append(episode_reward)
+    average_queue = sum(queue_list[-AGGREGATE_REWARD_EVERY:])/len(queue_list[-AGGREGATE_REWARD_EVERY:])
+
+    returns.append(episode_reward)
+    total_reward += episode_reward
+
+    try:
+        durations = np.asarray(get_from_info(file_path='intersection_3_info.xml'), dtype=np.float32)
+        average_travel_time = np.sum(durations)/len(durations)
+        print('avg Travel time: ',average_travel_time)
+        travel_time_list.append(average_travel_time)
+
+        waiting_times = np.asarray(get_from_info(file_path='intersection_3_info.xml',\
+                                                 retrieve='waitingTime'), dtype=np.float32)
+        avg_waiting = np.sum(waiting_times)/len(waiting_times)  
+        print('avg waiting time: ',avg_waiting)
+        waiting_time_list.append(avg_waiting)
+
+    except:
+        print('travel time skipped')
+    try:
+
+        durations = np.asarray(get_from_info(), dtype=np.float32)
+        avg_duration = np.sum(durations)/len(durations)    
+        print('episode :{}/{}, episode_reward {}, avg_queu {}, avg_time:{}'.format(i, episodes, episode_reward, \
+                                                                                            ep_queue, avg_duration))
+
+    except:
+        print('info file error')
+
+    if np.floor(avg_duration)<=131:
+        agent.save_models(model_path+'/'+str(avg_duration)+str(i))
+    if i % 50 == 0:
+
+        agent.save_models(model_path+'/'+str(avg_duration)+str(i))
+        plot_and_save(reward_list, model_path, 'reward', episode=i)
+        plot_and_save(queue_list, model_path, 'queue', episode=i)
+        plot_and_save(travel_time_list, model_path, 'avg_travel_time', episode=i)
+        plot_and_save(waiting_time_list, model_path, 'avg_waiting_time', episode=i)
+
+    traci.close()
+# #     if (i + 1) % 100 == 0:
+#     print('{0:5s} R:{1:.5f} P(S):{2:.4f}'.format(str(i + 1), total_reward / (i + 1)    ,
+#                                                  returns[i]))
+end_time = time.time()
+print("Training took %.2f seconds" % (end_time - start_time))
+print('average Travel Time:', sum(travel_time_list[-10:])/len(travel_time_list[-10:]))
+
+if save_freq > 0 and save_dir:
+    agent.save_models(os.path.join(save_dir, str(i)))
+
+# returns = env.get_episode_rewards()
+# np.save(os.path.join(dir, title + "{}".format(str(seed))), returns)
+
+# if evaluation_episodes > 0:
+#     print("Evaluating agent over {} episodes".format(evaluation_episodes))
+#     agent.epsilon_final = 0.
+#     agent.epsilon = 0.
+#     agent.noise = None
+#     evaluation_returns = evaluate(env, agent, evaluation_episodes)
+#     print("Ave. evaluation return =", sum(evaluation_returns) / len(evaluation_returns))
+#     print("Ave. evaluation prob. =", sum(evaluation_returns == 50.) / len(evaluation_returns))
+#     np.save(os.path.join(dir, title + "{}e".format(str(seed))), evaluation_returns)
+
+
+# run(seed, episodes, evaluation_episodes, batch_size, gamma, inverting_gradients, initial_memory_threshold,
+#         replay_memory_size, epsilon_steps, epsilon_final, tau_actor, tau_actor_param, use_ornstein_noise,
+#         learning_rate_actor, learning_rate_actor_param, reward_scale, clip_grad, title, scale_actions,
+#         zero_index_gradients, split, layers, multipass, indexed, weighted, average, random_weighted, render_freq,
+#         action_input_layer, initialise_params, save_freq, save_dir, save_frames, visualise)
+
+
+
